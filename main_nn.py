@@ -1,3 +1,8 @@
+from numpy.random import seed
+seed(1)
+from tensorflow import set_random_seed
+set_random_seed(2)
+
 import os
 import time
 import pickle as pk
@@ -23,9 +28,21 @@ from layers import add_other_hidden_layers
 
 
 # Set up your model
-def neural_nets(X_train, y_train, X_val, y_val, params, params_idx):
+def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
+    """
+
+    :param X_train:
+    :param y_train:
+    :param X_val:
+    :param y_val:
+    :param params:
+    :param params_idx:
+    :param cp_dir: output directory of the checkpoints(weights)
+    :return:
+    """
     # TODO: do not return history
     # TODO: try to return the index of epoch where model training is stopped
+    # TODO: add file path for the hd5f files saving weights
     # TODO:
     # sess = tf.Session()
     # K.set_session(sess)
@@ -47,21 +64,22 @@ def neural_nets(X_train, y_train, X_val, y_val, params, params_idx):
                   optimizer=params['optimizer']())
 
     # set up callbacks
-    cp_fp = f'{params_idx}' + '_best_model_{epoch:02d}_{val_loss:.5f}.hdf5'
+    cp_fp = f'{cp_dir}\\{params_idx}' + '_best_model_{epoch:02d}_{val_loss:.5f}.hdf5'
     check_pointer = ModelCheckpointRtnBest(filepath=cp_fp, monitor='val_loss', mode='min', verbose=1)
     early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10, verbose=1, mode='min')
     cb_list = [check_pointer, early_stopper]
 
-    history = model.fit(X_train, y_train,
-                        validation_data=[X_val, y_val],
-                        batch_size=params['batch_size'],
-                        callbacks=cb_list,                    # , TQDMNotebookCallback() PlotLossesKeras()
-                        epochs=params['epochs'],
-                        verbose=0)
+    model.fit(X_train, y_train,
+              validation_data=[X_val, y_val],
+              batch_size=params['batch_size'],
+              callbacks=cb_list,                    # , TQDMNotebookCallback() PlotLossesKeras()
+              epochs=params['epochs'],
+              verbose=0)
     print(model.summary())
-    return history, model
+    return model
 
 
+# TODO: Add Sphinx documentation
 if __name__ == "__main__":
     start = time.time()
     # Get training set, validation set, and test set
@@ -84,33 +102,54 @@ if __name__ == "__main__":
 #               'activation': [relu],
 #               'last_activation': [sigmoid]}
 
-    # params = {'lr': [0.001],
-    #           'first_neuron': [10, 20],
-    #           'batch_size': [128],
-    #           'epochs': [10, 20, 30, 40],
-    #           'dropout': [0],
+    # params_rs = {'lr': [1.00184520454465e-6],
+    #           'dropout': [0.360162246721079],
+    #
+    #           'batch_size': [335],
+    #           'epochs': [100],
+    #
+    #           'layer_size': [147],
+    #           'other_hidden_layers': [0],
+    #           'shapes': ['funnel'],
+    #
     #           'kernel_initializer': ['normal'],
     #           'optimizer': [Adam],
     #           'losses': [binary_crossentropy],
     #           'activation': [relu],
     #           'last_activation': [sigmoid]}
 
-    params_rs = {'lr': (-6, 1, 5),   # log scale for lr
-                 'dropout': (0, 0.5, 2),
+    params_rs = {'lr': [0.110222803767004],
+              'dropout': [0.208511002351287],
 
-                 'batch_size': (100, 2000, 5),
-                 'epochs': [100],
+              'batch_size': [1161],
+              'epochs': [100],
 
-                 'layer_size': (10, 200, 5),
-                 'other_hidden_layers': [0, 1, 2, 3],
-                 'shapes': ['funnel'],
+              'layer_size': [147],
+              'other_hidden_layers': [2],
+              'shapes': ['funnel'],
 
-                 'kernel_initializer': ['normal'],
-                 'optimizer': [Adam],
-                 'losses': [binary_crossentropy],
-                 'activation': [relu],
-                 'last_activation': [sigmoid]
-                 }
+              'kernel_initializer': ['normal'],
+              'optimizer': [Adam],
+              'losses': [binary_crossentropy],
+              'activation': [relu],
+              'last_activation': [sigmoid]}
+
+    # params_rs = {'lr': (-6, 1, 5),   # log scale for lr
+    #              'dropout': (0, 0.5, 2),
+    #
+    #              'batch_size': (100, 2000, 5),
+    #              'epochs': [100],
+    #
+    #              'layer_size': (10, 200, 5),
+    #              'other_hidden_layers': [0, 1, 2, 3],
+    #              'shapes': ['funnel'],
+    #
+    #              'kernel_initializer': ['normal'],
+    #              'optimizer': [Adam],
+    #              'losses': [binary_crossentropy],
+    #              'activation': [relu],
+    #              'last_activation': [sigmoid]
+    #              }
 
     prs = ParamsRandomSearch(**params_rs)
     print(f'# of combos: {len(prs.params_grid)}')
@@ -122,8 +161,8 @@ if __name__ == "__main__":
     # scan the params grid
     t = Scan(X_train=X_train,
              y_train=y_train,
-             X_val=X_val,
-             y_val=y_val,
+             X_val=X_test,
+             y_val=y_test,
              params_grid=prs.params_grid,
              dataset_name='Mei_NN',
              model=neural_nets)

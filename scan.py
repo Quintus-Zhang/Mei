@@ -3,6 +3,7 @@ import multiprocessing
 import csv
 import glob
 import os
+import re
 
 # sklearn items
 from sklearn.metrics import roc_auc_score, roc_curve, auc, precision_recall_curve, average_precision_score, f1_score
@@ -11,8 +12,8 @@ from sklearn.metrics import roc_auc_score, roc_curve, auc, precision_recall_curv
 from imblearn.metrics import geometric_mean_score
 
 # TODO: clear_session
-# TODO: save results to results dir
-# TODO:
+# TODO: separate _output_setup method as a class
+# TODO: clever way to create results header
 
 
 class Scan(object):
@@ -24,29 +25,33 @@ class Scan(object):
         self.params_grid = params_grid
         self.dataset_name = dataset_name
         self.model = model
-        self.op_par_dir = '.\\Results'
-        self.op_dir = ''
+        self.result_dir = '.\\Results'
+        self.round_dir = ''
+        self.round_fp = ''
 
+        # to set the round_dir and the round_fp, to make a round directory under Results directory
         self._output_setup()
+
+        #
         self._write_results_header()
 
         # self.params_grid = self.get_params_grid()
-        # self._run_search()
-        self.mp_handler()
+        self._run_search()
+        # self.mp_handler()
 
     def _run_search(self):
-        with open(self.op_fp, 'a', newline='') as f:
+        with open(self.round_fp, 'a', newline='') as f:
             res_writer = csv.writer(f, dialect='excel', delimiter=',')
             for idx, params in enumerate(self.params_grid):
                 # tf.reset_default_graph()
                 result = self.worker((idx, params))
-                print(f'Saving results to {self.op_fp}')
+                print(f'Saving results to {self.round_fp}')
                 res_writer.writerow(result)
                 f.flush()
 
     def worker(self, args):
         idx, params = args
-        history, trained_model = self.model(self.X_train, self.y_train, self.X_val, self.y_val, params, idx)
+        trained_model = self.model(self.X_train, self.y_train, self.X_val, self.y_val, params, idx, self.round_dir)
         metrics_tra = self._model_predict(trained_model, self.X_train, self.y_train)
         metrics_val = self._model_predict(trained_model, self.X_val, self.y_val)
         return [str(idx)] + self._collect_results(metrics_tra) + self._collect_results(metrics_val) + self._collect_results(params)
@@ -54,10 +59,10 @@ class Scan(object):
     def mp_handler(self):
         cores = multiprocessing.cpu_count()
         with multiprocessing.Pool(cores) as p:
-            with open(self.op_fp, 'a', newline='') as f:
+            with open(self.round_fp, 'a', newline='') as f:
                 res_writer = csv.writer(f, dialect='excel', delimiter=',')
-                for result in p.imap(self.worker, enumerate(self.params_grid)):  # a queue defined by pool object
-                    print(f'Saving results to {self.op_fp}')
+                for result in p.imap(self.worker, enumerate(self.params_grid)):      # a queue defined by pool object
+                    print(f'Saving results to {self.round_fp}')
                     res_writer.writerow(result)
                     f.flush()
 
@@ -97,7 +102,7 @@ class Scan(object):
                   'Actual_#_D60_val',
                   'lr', 'dropout', 'other_hidden_layers', 'layer_size', 'batch_size', 'epochs', 'shapes',
                   'kernel_initializer', 'optimizer', 'losses', 'activation', 'last_activation']
-        with open(self.op_fp, 'w', newline='') as f:
+        with open(self.round_fp, 'w', newline='') as f:
             res_writer = csv.writer(f, dialect='excel', delimiter=',')
             res_writer.writerow(header)
 
@@ -109,14 +114,15 @@ class Scan(object):
         return op  # ",".join(str(i) for i in op)
 
     def _output_setup(self):
-        rounds = glob.glob(f'{self.op_par_dir}\\{self.dataset_name}_*')
+        rounds = glob.glob(f'{self.result_dir}\\{self.dataset_name}_*')
         if not rounds:
             experiment_no = 1
         else:
-            experiment_no = int(rounds[-1].split('_')[-1]) + 1
-        self.op_dir = f'{self.op_par_dir}\\{self.dataset_name}_{experiment_no}'
-        os.mkdir(self.op_dir)
-        self.op_fp = f'{self.op_dir}\\{self.dataset_name}_{experiment_no}.csv'
+            sorted_rounds = sorted(rounds, key=lambda x: int(re.search(r'\d+$', x).group()))  # sort rounds by index
+            experiment_no = int(sorted_rounds[-1].split('_')[-1]) + 1
+        self.round_dir = f'{self.result_dir}\\{self.dataset_name}_{experiment_no}'
+        os.mkdir(self.round_dir)
+        self.round_fp = f'{self.round_dir}\\{self.dataset_name}_{experiment_no}.csv'
 
 
     # # disposable

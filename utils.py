@@ -123,7 +123,7 @@ class ModelCheckpointRtnBest(Callback):
                     self.best = current
                     self.best_epochs = epoch + 1
                     self.best_weights = self.model.get_weights()
-                    # self.model.save(filepath, overwrite=True)
+                    self.model.save(filepath, overwrite=True)
                 else:
                     if self.verbose > 0:
                         print('\nEpoch %05d: %s did not improve' %
