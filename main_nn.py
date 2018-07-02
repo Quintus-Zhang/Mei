@@ -5,7 +5,9 @@
 
 import os
 import time
+import numpy as np
 import pandas as pd
+import pickle as pk
 import multiprocessing
 
 # local items
@@ -19,13 +21,18 @@ from config import *
 # TODO: Add visualization (search keras hps tuning)
 if __name__ == "__main__":
     start = time.time()
-    # Get training set, validation set, and test set
-    base_path = os.path.dirname(__file__)
-    results_path = os.path.join(base_path, 'Results')
-    data_fp = os.path.join(base_path, 'Data', 'Gse_panel_current_sample_raw.csv')
+    base_dir = os.path.dirname(__file__)
+    results_dir = os.path.join(base_dir, 'Results')
+    data_fp = os.path.join(base_dir, 'Data', 'Gse_panel_current_sample_raw.csv')
+    temp_dir = os.path.join(base_dir, 'Temp')
 
+    # retrieve training set, validation set, and test set
     df = pd.read_csv(data_fp)
     X_train, X_val, X_test, y_train, y_val, y_test = data_prep(df)
+
+    # dump the test dataset as pickle file to Temp dir for later use
+    X_test.dump(f'{temp_dir}\\X_test.pkl')
+    y_test.dump(f'{temp_dir}\\y_test.pkl')
 
     prs = ParamsRandomSearch(**params)
     print(f'# of combos: {len(prs.params_grid)}')

@@ -52,8 +52,8 @@ class Scan(object):
     def worker(self, args):
         idx, params = args
         trained_model = self.model(self.X_train, self.y_train, self.X_val, self.y_val, params, idx, self.round_dir)
-        metrics_tra = self._model_predict(trained_model, self.X_train, self.y_train)
-        metrics_val = self._model_predict(trained_model, self.X_val, self.y_val)
+        metrics_tra = self.model_predict(trained_model, self.X_train, self.y_train)
+        metrics_val = self.model_predict(trained_model, self.X_val, self.y_val)
         return [str(idx)] + self._collect_results(metrics_tra) + self._collect_results(metrics_val) + self._collect_results(params)
 
     def mp_handler(self):
@@ -67,7 +67,7 @@ class Scan(object):
                     f.flush()
 
     @staticmethod
-    def _model_predict(model, X, y):
+    def model_predict(model, X, y):
         # evaluate
         loss = model.evaluate(X, y, batch_size=X.shape[0])
 
@@ -117,13 +117,13 @@ class Scan(object):
     def _output_setup(self):
         rounds = glob.glob(f'{self.result_dir}\\{self.dataset_name}_*')
         if not rounds:
-            experiment_no = 1
+            round_no = 1
         else:
             sorted_rounds = sorted(rounds, key=lambda x: int(re.search(r'\d+$', x).group()))  # sort rounds by index
-            experiment_no = int(sorted_rounds[-1].split('_')[-1]) + 1
-        self.round_dir = f'{self.result_dir}\\{self.dataset_name}_{experiment_no}'
+            round_no = int(sorted_rounds[-1].split('_')[-1]) + 1
+        self.round_dir = f'{self.result_dir}\\{self.dataset_name}_{round_no}'
         os.mkdir(self.round_dir)
-        self.round_fp = f'{self.round_dir}\\{self.dataset_name}_{experiment_no}.csv'
+        self.round_fp = f'{self.round_dir}\\{self.dataset_name}_{round_no}.csv'
 
 
     # # disposable
