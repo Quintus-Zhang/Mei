@@ -91,15 +91,16 @@ class Scan(object):
                    'F_score': f_score,
                    'G_mean': g_mean,
                    'Expeted_#_D60': exp_pos,
-                   'Actual_#_D60': np.sum(y), }
+                   'Actual_#_D60': np.sum(y),
+                   'Diff_#_D60': abs(np.sum(y)-exp_pos)}
         return metrics
 
     def _write_results_header(self):
         header = ['Index',
                   'Loss_train', 'PR_AUC_train', 'ROC_AUC_train', 'F_score_train', 'G_mean_train', 'Expeted_#_D60_train',
-                  'Actual_#_D60_train',
+                  'Actual_#_D60_train', 'Diff_#_D60_train',
                   'Loss_val', 'PR_AUC_val', 'ROC_AUC_val', 'F_score_val', 'G_mean_val', 'Expeted_#_D60_val',
-                  'Actual_#_D60_val',
+                  'Actual_#_D60_val', 'Diff_#_D60_val',
                   'lr', 'dropout', 'other_hidden_layers', 'layer_size', 'batch_size', 'epochs', 'shapes',
                   'kernel_initializer', 'optimizer', 'losses', 'activation', 'last_activation']
         with open(self.round_fp, 'w', newline='') as f:

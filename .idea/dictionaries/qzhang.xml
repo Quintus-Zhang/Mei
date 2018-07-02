@@ -2,6 +2,8 @@
   <dictionary name="qzhang">
     <words>
       <w>dataset</w>
+      <w>filepath</w>
+      <w>keras</w>
     </words>
   </dictionary>
 </component>

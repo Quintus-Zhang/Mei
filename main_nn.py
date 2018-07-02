@@ -40,10 +40,7 @@ def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
     :param cp_dir: output directory of the checkpoints(weights)
     :return:
     """
-    # TODO: do not return history
     # TODO: try to return the index of epoch where model training is stopped
-    # TODO: add file path for the hd5f files saving weights
-    # TODO:
     # sess = tf.Session()
     # K.set_session(sess)
 
@@ -80,6 +77,7 @@ def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
 
 
 # TODO: Add Sphinx documentation
+# TODO: Add visualization (search keras hps tuning)
 if __name__ == "__main__":
     start = time.time()
     # Get training set, validation set, and test set
@@ -161,8 +159,8 @@ if __name__ == "__main__":
     # scan the params grid
     t = Scan(X_train=X_train,
              y_train=y_train,
-             X_val=X_test,
-             y_val=y_test,
+             X_val=X_val,
+             y_val=y_val,
              params_grid=prs.params_grid,
              dataset_name='Mei_NN',
              model=neural_nets)

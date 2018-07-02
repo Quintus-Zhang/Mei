@@ -108,7 +108,6 @@ class ModelCheckpointRtnBest(Callback):
         self.epochs_since_last_save += 1
         if self.epochs_since_last_save >= self.period:
             self.epochs_since_last_save = 0
-            filepath = self.filepath.format(epoch=epoch + 1, **logs)
             current = logs.get(self.monitor)
             if current is None:
                 warnings.warn('Can pick best model only with %s available, '
@@ -123,7 +122,8 @@ class ModelCheckpointRtnBest(Callback):
                     self.best = current
                     self.best_epochs = epoch + 1
                     self.best_weights = self.model.get_weights()
-                    self.model.save(filepath, overwrite=True)
+                    self.best_val_loss = logs['val_loss']
+                    # self.model.save(filepath, overwrite=True)
                 else:
                     if self.verbose > 0:
                         print('\nEpoch %05d: %s did not improve' %
@@ -134,7 +134,5 @@ class ModelCheckpointRtnBest(Callback):
             print('Using epoch %05d with %s: %0.5f' % (self.best_epochs, self.monitor,
                                                        self.best))
         self.model.set_weights(self.best_weights)
-
-
-
-
+        filepath = self.filepath.format(epoch=self.best_epochs, val_loss=self.best_val_loss)
+        self.model.save(filepath, overwrite=True)    # save the best model over the training path of a certain combo
