@@ -65,7 +65,7 @@ def select_and_predict(round_no=None, based_on='Loss_val', extra_source=False):
 
 
 if __name__ == "__main__":
-    metrics_test = select_and_predict(round_no=3, based_on='Diff_#_D60_val', extra_source=False)
+    metrics_test = select_and_predict(round_no=13, based_on='Diff_#_D60_val', extra_source=False)
     print(metrics_test)
 
 

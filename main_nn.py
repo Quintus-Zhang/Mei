@@ -47,7 +47,7 @@ if __name__ == "__main__":
              y_train=y_train,
              X_val=X_val,
              y_val=y_val,
-             params_grid=prs.params_grid,
+             search_method=prs,
              dataset_name='Mei_NN',
              model=neural_nets)
 

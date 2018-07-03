@@ -170,4 +170,4 @@ params = {'lr': (-6, 1),                    # log scale for lr
           'last_activation': [sigmoid]
           }
 
-n_iter = 10
+n_iter = 2

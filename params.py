@@ -79,7 +79,8 @@ class ParamsRandomSearch(ParamsSearch):
     def _axes(self):
         # iterator of combs
         return zip(*(self._axis(key, self.__dict__[key]) for key in self.params_name))
-        # unpack list of np array before zipping it !!!
+        # unpack list of np array before zipping it,
+        # because zip() accept multiple iterables instead of a single iterable containing iterables to zip
 
     def _axis(self, key, specs):
         if type(specs) is tuple:

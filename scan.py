@@ -15,14 +15,14 @@ from imblearn.metrics import geometric_mean_score
 # TODO: separate _output_setup method as a class
 # TODO: clever way to create results header
 
-
 class Scan(object):
-    def __init__(self, X_train, y_train, X_val, y_val, params_grid, dataset_name, model):
+    def __init__(self, X_train, y_train, X_val, y_val, search_method, dataset_name, model):
         self.X_train = X_train
         self.y_train = y_train
         self.X_val = X_val
         self.y_val = y_val
-        self.params_grid = params_grid
+        self.params_grid = search_method.params_grid
+        self.params_name = search_method.params_name
         self.dataset_name = dataset_name
         self.model = model
         self.result_dir = '.\\Results'
@@ -100,9 +100,9 @@ class Scan(object):
                   'Loss_train', 'PR_AUC_train', 'ROC_AUC_train', 'F_score_train', 'G_mean_train', 'Expeted_#_D60_train',
                   'Actual_#_D60_train', 'Diff_#_D60_train',
                   'Loss_val', 'PR_AUC_val', 'ROC_AUC_val', 'F_score_val', 'G_mean_val', 'Expeted_#_D60_val',
-                  'Actual_#_D60_val', 'Diff_#_D60_val',
-                  'lr', 'dropout', 'other_hidden_layers', 'layer_size', 'batch_size', 'epochs', 'shapes',
-                  'kernel_initializer', 'optimizer', 'losses', 'activation', 'last_activation']
+                  'Actual_#_D60_val', 'Diff_#_D60_val', ] + self.params_name
+        #                   'lr', 'dropout', 'other_hidden_layers', 'layer_size', 'batch_size', 'epochs', 'shapes',
+        #                   'kernel_initializer', 'optimizer', 'losses', 'activation', 'last_activation'
         with open(self.round_fp, 'w', newline='') as f:
             res_writer = csv.writer(f, dialect='excel', delimiter=',')
             res_writer.writerow(header)
