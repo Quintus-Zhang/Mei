@@ -15,14 +15,15 @@ from imblearn.metrics import geometric_mean_score
 # TODO: separate _output_setup method as a class
 # TODO: clever way to create results header
 
+
 class Scan(object):
-    def __init__(self, X_train, y_train, X_val, y_val, search_method, dataset_name, model):
+    def __init__(self, X_train, y_train, X_val, y_val, params_search, dataset_name, model):
         self.X_train = X_train
         self.y_train = y_train
         self.X_val = X_val
         self.y_val = y_val
-        self.params_grid = search_method.params_grid
-        self.params_name = search_method.params_name
+        self.params_grid = params_search.params_grid
+        self.params_name = params_search.params_name
         self.dataset_name = dataset_name
         self.model = model
         self.result_dir = '.\\Results'
@@ -36,8 +37,8 @@ class Scan(object):
         self._write_results_header()
 
         # self.params_grid = self.get_params_grid()
-        self._run_search()
-        # self.mp_handler()
+        # self._run_search()
+        self.mp_handler()
 
     def _run_search(self):
         with open(self.round_fp, 'a', newline='') as f:
@@ -51,10 +52,15 @@ class Scan(object):
 
     def worker(self, args):
         idx, params = args
-        trained_model = self.model(self.X_train, self.y_train, self.X_val, self.y_val, params, idx, self.round_dir)
+        trained_model, stopped_epoch = self.model(self.X_train, self.y_train,
+                                                  self.X_val, self.y_val, params, idx, self.round_dir)
         metrics_tra = self.model_predict(trained_model, self.X_train, self.y_train)
         metrics_val = self.model_predict(trained_model, self.X_val, self.y_val)
-        return [str(idx)] + self._collect_results(metrics_tra) + self._collect_results(metrics_val) + self._collect_results(params)
+        return [str(idx)] \
+            + self._collect_results(metrics_tra) \
+            + self._collect_results(metrics_val) \
+            + [str(stopped_epoch)] \
+            + self._collect_results(params)
 
     def mp_handler(self):
         cores = multiprocessing.cpu_count()
@@ -69,7 +75,7 @@ class Scan(object):
     @staticmethod
     def model_predict(model, X, y):
         # evaluate
-        loss = model.evaluate(X, y, batch_size=X.shape[0])
+        loss = model.evaluate(X, y, batch_size=X.shape[0], verbose=0)
 
         # predict
         prob_pos = model.predict(X, batch_size=X.shape[0], verbose=0)    # TODO: batch_size
@@ -100,7 +106,8 @@ class Scan(object):
                   'Loss_train', 'PR_AUC_train', 'ROC_AUC_train', 'F_score_train', 'G_mean_train', 'Expeted_#_D60_train',
                   'Actual_#_D60_train', 'Diff_#_D60_train',
                   'Loss_val', 'PR_AUC_val', 'ROC_AUC_val', 'F_score_val', 'G_mean_val', 'Expeted_#_D60_val',
-                  'Actual_#_D60_val', 'Diff_#_D60_val', ] + self.params_name
+                  'Actual_#_D60_val', 'Diff_#_D60_val',
+                  'Stopped_Epochs'] + self.params_name
         #                   'lr', 'dropout', 'other_hidden_layers', 'layer_size', 'batch_size', 'epochs', 'shapes',
         #                   'kernel_initializer', 'optimizer', 'losses', 'activation', 'last_activation'
         with open(self.round_fp, 'w', newline='') as f:

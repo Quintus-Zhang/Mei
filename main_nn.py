@@ -1,7 +1,9 @@
-# from numpy.random import seed
-# seed(1)
-# from tensorflow import set_random_seed
-# set_random_seed(2)
+from numpy.random import seed
+seed(1)
+from tensorflow import set_random_seed
+set_random_seed(2)
+
+# params are exactly the same, but metrics results are little bit different
 
 import os
 import time
@@ -36,7 +38,7 @@ if __name__ == "__main__":
 
     prs = ParamsRandomSearch(params, n_iter=n_iter)
     print(f'# of combos: {len(prs.params_grid)}')
-    print(prs.params_grid)
+    # print(prs.params_grid)
 
     multiprocessing.freeze_support()
     p = multiprocessing.Process()
@@ -47,7 +49,7 @@ if __name__ == "__main__":
              y_train=y_train,
              X_val=X_val,
              y_val=y_val,
-             search_method=prs,
+             params_search=prs,
              dataset_name='Mei_NN',
              model=neural_nets)
 

@@ -47,7 +47,6 @@ def add_other_hidden_layers(model, params, last_neuron):
     try:
         params['shapes']
         layer_neurons = shapes(params, last_neuron)
-        print(layer_neurons)
     except KeyError:
         layer_neurons = [params['layer_size']] * params['other_hidden_layers']
 

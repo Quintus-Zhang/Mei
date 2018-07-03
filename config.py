@@ -52,8 +52,8 @@ def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
 
     # set up callbacks
     cp_fp = f'{cp_dir}\\{params_idx}' + '_best_model_{epoch:02d}_{val_loss:.5f}.hdf5'
-    check_pointer = ModelCheckpointRtnBest(filepath=cp_fp, monitor='val_loss', mode='min', verbose=1)
-    early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10, verbose=1, mode='min')
+    check_pointer = ModelCheckpointRtnBest(filepath=cp_fp, monitor='val_loss', mode='min', verbose=0)
+    early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10, verbose=0, mode='min')
     cb_list = [check_pointer, early_stopper]
 
     model.fit(X_train, y_train,
@@ -62,8 +62,8 @@ def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
               callbacks=cb_list,                    # , TQDMNotebookCallback() PlotLossesKeras()
               epochs=params['epochs'],
               verbose=0)
-    print(model.summary())
-    return model
+    # print(model.summary())
+    return model, early_stopper.stopped_epoch
 
 
 #########################################
@@ -170,4 +170,4 @@ params = {'lr': (-6, 1),                    # log scale for lr
           'last_activation': [sigmoid]
           }
 
-n_iter = 2
+n_iter = 1
