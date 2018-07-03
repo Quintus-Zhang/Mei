@@ -13,7 +13,7 @@ import multiprocessing
 # local items
 from utils import data_prep
 from scan import Scan
-from params import ParamsGridSearch, ParamsRandomSearch
+from params import ParamsGridSearch, ParamsRandomGridSearch, ParamsRandomSearch
 from config import *
 
 
@@ -34,8 +34,9 @@ if __name__ == "__main__":
     X_test.dump(f'{temp_dir}\\X_test.pkl')
     y_test.dump(f'{temp_dir}\\y_test.pkl')
 
-    prs = ParamsRandomSearch(**params)
+    prs = ParamsRandomSearch(params, n_iter=n_iter)
     print(f'# of combos: {len(prs.params_grid)}')
+    print(prs.params_grid)
 
     multiprocessing.freeze_support()
     p = multiprocessing.Process()

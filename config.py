@@ -69,8 +69,12 @@ def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
 #########################################
 #        Set Params Search Range        #
 #########################################
+
+# (start, end, # of points)
+# [first item, second item, ...]
+
 # params grid
-#    params = {'lr': [10**i for i in range(-6, 1)],
+# params = {'lr': [10**i for i in range(-6, 1)],
 #              'first_neuron': list(range(4, 46, 10)),
 #               'batch_size': [2**i for i in range(2, 13, 2)],
 #               'epochs': list(range(5, 100, 20)),
@@ -114,22 +118,22 @@ def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
 #           'last_activation': [sigmoid]}
 
 
-params = {'lr': [0.001],   # log scale for lr
-          'dropout': [0.2],
-
-          'batch_size': (100, 2000, 5),
-          'epochs': [100],
-
-          'layer_size': [20],
-          'other_hidden_layers': [1],
-          'shapes': ['funnel'],
-
-          'kernel_initializer': ['normal'],
-          'optimizer': [Adam],
-          'losses': [binary_crossentropy],
-          'activation': [relu],
-          'last_activation': [sigmoid]
-         }
+# params = {'lr': [0.001],   # log scale for lr
+#           'dropout': [0.2],
+#
+#           'batch_size': (100, 2000, 5),
+#           'epochs': [100],
+#
+#           'layer_size': [20],
+#           'other_hidden_layers': [1],
+#           'shapes': ['funnel'],
+#
+#           'kernel_initializer': ['normal'],
+#           'optimizer': [Adam],
+#           'losses': [binary_crossentropy],
+#           'activation': [relu],
+#           'last_activation': [sigmoid]
+#          }
 
 # params = {'lr': (-6, 1, 5),   # log scale for lr
 #              'dropout': (0, 0.5, 2),
@@ -147,3 +151,23 @@ params = {'lr': [0.001],   # log scale for lr
 #              'activation': [relu],
 #              'last_activation': [sigmoid]
 #              }
+
+
+params = {'lr': (-6, 1),                    # log scale for lr
+          'dropout': (0, 0.5),
+
+          'batch_size': (100, 2000),
+          'epochs': [100],
+
+          'layer_size': (10, 200),
+          'other_hidden_layers': [0, 1],
+          'shapes': ['funnel'],
+
+          'kernel_initializer': ['normal'],
+          'optimizer': [Adam],
+          'losses': [binary_crossentropy],
+          'activation': [relu],
+          'last_activation': [sigmoid]
+          }
+
+n_iter = 10
