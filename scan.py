@@ -1,5 +1,5 @@
 import numpy as np
-import multiprocessing
+import multiprocessing as mp
 import csv
 import glob
 import os
@@ -10,8 +10,10 @@ from sklearn.metrics import roc_auc_score, roc_curve, auc, precision_recall_curv
 
 #
 from imblearn.metrics import geometric_mean_score
+from keras import backend as K
+import tensorflow as tf
 
-# TODO: clear_session
+# TODO: clear_session or del model
 # TODO: separate _output_setup method as a class
 # TODO: clever way to create results header
 
@@ -36,7 +38,6 @@ class Scan(object):
         #
         self._write_results_header()
 
-        # self.params_grid = self.get_params_grid()
         # self._run_search()
         self.mp_handler()
 
@@ -46,6 +47,7 @@ class Scan(object):
             for idx, params in enumerate(self.params_grid):
                 # tf.reset_default_graph()
                 result = self.worker((idx, params))
+                # K.clear_session()
                 print(f'Saving results to {self.round_fp}')
                 res_writer.writerow(result)
                 f.flush()
@@ -63,8 +65,8 @@ class Scan(object):
             + self._collect_results(params)
 
     def mp_handler(self):
-        cores = multiprocessing.cpu_count()
-        with multiprocessing.Pool(cores) as p:
+        cores = mp.cpu_count()
+        with mp.Pool(cores) as p:
             with open(self.round_fp, 'a', newline='') as f:
                 res_writer = csv.writer(f, dialect='excel', delimiter=',')
                 for result in p.imap(self.worker, enumerate(self.params_grid)):      # a queue defined by pool object
@@ -98,15 +100,16 @@ class Scan(object):
                    'G_mean': g_mean,
                    'Expeted_#_D60': exp_pos,
                    'Actual_#_D60': np.sum(y),
-                   'Diff_#_D60': abs(np.sum(y)-exp_pos)}
+                   'Diff_D60': np.sum(y) / exp_pos,
+                   }
         return metrics
 
     def _write_results_header(self):
         header = ['Index',
                   'Loss_train', 'PR_AUC_train', 'ROC_AUC_train', 'F_score_train', 'G_mean_train', 'Expeted_#_D60_train',
-                  'Actual_#_D60_train', 'Diff_#_D60_train',
+                  'Actual_#_D60_train', 'Diff_D60_train',
                   'Loss_val', 'PR_AUC_val', 'ROC_AUC_val', 'F_score_val', 'G_mean_val', 'Expeted_#_D60_val',
-                  'Actual_#_D60_val', 'Diff_#_D60_val',
+                  'Actual_#_D60_val', 'Diff_D60_val',
                   'Stopped_Epochs'] + self.params_name
         #                   'lr', 'dropout', 'other_hidden_layers', 'layer_size', 'batch_size', 'epochs', 'shapes',
         #                   'kernel_initializer', 'optimizer', 'losses', 'activation', 'last_activation'
@@ -114,7 +117,7 @@ class Scan(object):
             res_writer = csv.writer(f, dialect='excel', delimiter=',')
             res_writer.writerow(header)
 
-    @staticmethod
+    @staticmethod  # TODO: check
     def _collect_results(results):
         op = []
         for key in list(results.keys()):
@@ -131,11 +134,3 @@ class Scan(object):
         self.round_dir = f'{self.result_dir}\\{self.dataset_name}_{round_no}'
         os.mkdir(self.round_dir)
         self.round_fp = f'{self.round_dir}\\{self.dataset_name}_{round_no}.csv'
-
-
-    # # disposable
-    # def get_params_grid(self):
-    #     params_name = list(self.params.keys())
-    #     combos = itertools.product(*(self.params[key] for key in params_name))   # iterable of tuple, each tuple is one combination
-    #     params_grid = [dict(zip(params_name, combo)) for combo in combos]        # list of dict
-    #     return params_grid

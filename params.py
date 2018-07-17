@@ -11,6 +11,7 @@ class ParamsSearch(object):
         self.batch_size = params['batch_size']
         self.epochs = params['epochs']
         self.shapes = params['shapes']
+        self.pos_weight = params['pos_weight']
         self.kernel_initializer = params['kernel_initializer']
         self.optimizer = params['optimizer']
         self.losses = params['losses']
@@ -18,7 +19,7 @@ class ParamsSearch(object):
         self.last_activation = params['last_activation']
 
         self.params_name = list(params.keys())
-        self.int_type_params = ['other_hidden_layers', 'layer_size', 'batch_size', 'epochs']
+        self.int_type_params = ['other_hidden_layers', 'layer_size', 'batch_size', 'epochs', 'pos_weight']
 
         # self._params_grid() --> self._axes() --> self.axis()
         self.params_grid = self._params_grid()

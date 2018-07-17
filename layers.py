@@ -51,16 +51,26 @@ def add_other_hidden_layers(model, params, last_neuron):
         layer_neurons = [params['layer_size']] * params['other_hidden_layers']
 
     for i in range(params['other_hidden_layers']):
-
-        model.add(Dense(layer_neurons[i],
-                        activation=params['activation'],
-                        use_bias=use_bias,
-                        kernel_initializer=kernel_initializer,
-                        kernel_regularizer=kernel_regularizer,
-                        bias_initializer=bias_initializer,
-                        bias_regularizer=bias_regularizer,
-                        activity_regularizer=activity_regularizer,
-                        kernel_constraint=kernel_constraint,
-                        bias_constraint=bias_constraint))
-
+        if type(params['activation']) is not type:
+            model.add(Dense(layer_neurons[i],
+                            activation=params['activation'],
+                            use_bias=use_bias,
+                            kernel_initializer=kernel_initializer,
+                            kernel_regularizer=kernel_regularizer,
+                            bias_initializer=bias_initializer,
+                            bias_regularizer=bias_regularizer,
+                            activity_regularizer=activity_regularizer,
+                            kernel_constraint=kernel_constraint,
+                            bias_constraint=bias_constraint))
+        else:
+            model.add(Dense(layer_neurons[i],
+                            use_bias=use_bias,
+                            kernel_initializer=kernel_initializer,
+                            kernel_regularizer=kernel_regularizer,
+                            bias_initializer=bias_initializer,
+                            bias_regularizer=bias_regularizer,
+                            activity_regularizer=activity_regularizer,
+                            kernel_constraint=kernel_constraint,
+                            bias_constraint=bias_constraint))
+            model.add(params['activation']())
         model.add(Dropout(params['dropout']))

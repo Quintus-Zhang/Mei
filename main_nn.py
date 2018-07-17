@@ -1,43 +1,57 @@
-from numpy.random import seed
-seed(1)
-from tensorflow import set_random_seed
-set_random_seed(2)
+# from numpy.random import seed
+# seed(1)
+# from tensorflow import set_random_seed
+# set_random_seed(2)
 
 # params are exactly the same, but metrics results are little bit different
 
 import os
 import time
+import glob
 import numpy as np
 import pandas as pd
 import pickle as pk
 import multiprocessing
 
 # local items
-from utils import data_prep
+from utils import data_prep, DataPrep, DataPrepWrapper
 from scan import Scan
 from params import ParamsGridSearch, ParamsRandomGridSearch, ParamsRandomSearch
 from config import *
 
 
+# Just disables the warning, doesn't enable AVX/FMA
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 # TODO: Add Sphinx documentation
 # TODO: Add visualization (search keras hps tuning)
 if __name__ == "__main__":
     start = time.time()
-    base_dir = os.path.dirname(__file__)
-    results_dir = os.path.join(base_dir, 'Results')
-    data_fp = os.path.join(base_dir, 'Data', 'Gse_panel_current_sample_raw.csv')
-    temp_dir = os.path.join(base_dir, 'Temp')
 
-    # retrieve training set, validation set, and test set
+    # # retrieve training set, validation set, and test set
+    # # 1. in sample data only
+    # df = pd.read_csv(data_fp)
+    # X_train, X_val, X_test, y_train, y_val, y_test = data_prep(df)
+
+    # 2. DataPrep
+    # df = pd.read_csv(data_fp)
+    # is_data = DataPrep(df)
+    # X_train, X_val, X_test, y_train, y_val, y_test = is_data.split_and_standardize()
+
+    # # 3. DataPrepWrapper
     df = pd.read_csv(data_fp)
-    X_train, X_val, X_test, y_train, y_val, y_test = data_prep(df)
+    os_df = pd.read_csv(os_data_fp)
+    is_data = DataPrep(df)
+    data = DataPrepWrapper(is_data, os_df)
+    X_train, X_val, X_test, y_train, y_val, y_test = data.split_and_standardize()
 
     # dump the test dataset as pickle file to Temp dir for later use
-    X_test.dump(f'{temp_dir}\\X_test.pkl')
-    y_test.dump(f'{temp_dir}\\y_test.pkl')
+    if not glob.glob(f'{temp_dir}\\*.pkl'):
+        X_test.dump(f'{temp_dir}\\X_test.pkl')
+        y_test.dump(f'{temp_dir}\\y_test.pkl')
 
     prs = ParamsRandomSearch(params, n_iter=n_iter)
-    print(f'# of combos: {len(prs.params_grid)}')
+    # print(f'# of combos: {len(prs.params_grid)}')
     # print(prs.params_grid)
 
     multiprocessing.freeze_support()
