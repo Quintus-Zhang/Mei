@@ -13,7 +13,7 @@ import tensorflow as tf
 import tensorflow as tf
 
 # local items
-from utils import ModelCheckpointRtnBest, expected_positives_loss
+from utils import ModelCheckpointRtnBest, expected_positives_loss, l1, l2, cloglog
 from layers import add_other_hidden_layers
 
 # set up paths of directories and files
@@ -243,14 +243,139 @@ def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
 #           'last_activation': [sigmoid],
 #           }
 
-params = {'lr': (-6, -1),                    # log scale for lr
-          'dropout': (0, 0.5),
+# # Mei_NN_7
+# params = {'lr': (-6, -1),                    # log scale for lr
+#           'dropout': (0, 0.5),
+#
+#           'batch_size': (10, 2000),
+#           'epochs': [100],
+#
+#           'layer_size': (10, 500),
+#           'other_hidden_layers': [2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+#           'shapes': ['funnel'],
+#
+#           'pos_weight': [1],
+#
+#           'kernel_initializer': ['uniform'],
+#           'optimizer': [Adam, Nadam, RMSprop],
+#           'losses': [binary_crossentropy],
+#           'activation': [relu, elu, LeakyReLU],
+#           'last_activation': [sigmoid],
+#           }
+
+# Mei_NN_9 and Mei_NN_10
+# params = {'lr': (-6, -1),
+#           'dropout': (0, 0.5),
+#
+#           'batch_size': (10, 2000),
+#           'epochs': [100],
+#
+#           'layer_size': (10, 500),
+#           'other_hidden_layers': [2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+#           'shapes': ['funnel'],
+#
+#           'pos_weight': [1],
+#
+#           'kernel_initializer': ['uniform'],
+#           'optimizer': [Adam, Nadam, RMSprop],
+#           'losses': [binary_crossentropy, l1, l2],
+#           'activation': [relu, elu, LeakyReLU],
+#           'last_activation': [sigmoid],
+#           }
+
+# # Mei_NN_11,  new data
+# params = {'lr': (-6, -1),
+#           'dropout': (0, 0.5),
+#
+#           'batch_size': (10, 2000),
+#           'epochs': [100],
+#
+#           'layer_size': (10, 500),
+#           'other_hidden_layers': [2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+#           'shapes': ['funnel'],
+#
+#           'pos_weight': [1],
+#
+#           'kernel_initializer': ['uniform'],
+#           'optimizer': [Adam, Nadam, RMSprop],
+#           'losses': [binary_crossentropy, l1, l2],
+#           'activation': [relu, elu, LeakyReLU],
+#           'last_activation': [sigmoid],
+#           }
+#
+# # Mei_NN_12,  new test data
+# params = {'lr': (-6, -1),
+#           'dropout': (0, 0.7),
+#
+#           'batch_size': (10, 2000),
+#           'epochs': [100],
+#
+#           'layer_size': (10, 500),
+#           'other_hidden_layers': [0],
+#           'shapes': ['funnel'],
+#
+#           'pos_weight': [1],
+#
+#           'kernel_initializer': ['uniform'],
+#           'optimizer': [Adam, Nadam, RMSprop],
+#           'losses': [binary_crossentropy],
+#           'activation': [relu, elu, LeakyReLU],
+#           'last_activation': [sigmoid],
+#           }
+#
+#
+# # Mei_NN_13,  new test data
+# params = {'lr': (-6, -1),
+#           'dropout': (0, 0.7),
+#
+#           'batch_size': (200, 2000),
+#           'epochs': [100],
+#
+#           'layer_size': (40, 500),
+#           'other_hidden_layers': [0, 1, 3, 5, 7, 9],
+#           'shapes': ['funnel'],
+#
+#           'pos_weight': [1],
+#
+#           'kernel_initializer': ['uniform'],
+#           'optimizer': [Adam, Nadam, RMSprop],
+#           'losses': [binary_crossentropy],
+#           'activation': [relu, elu, LeakyReLU],
+#           'last_activation': [sigmoid],
+#           }
+
+# # Mei_NN_14,  new test data
+# # # see if nn with 6 hidden layers can beat the nn with 1 hidden layer ?
+# # params = {'lr': (-6, -1),
+# #           'dropout': (0, 0.7),
+# #
+# #           'batch_size': (500, 2500),
+# #           'epochs': [100],
+# #
+# #           'layer_size': (40, 500),
+# #           'other_hidden_layers': [5],
+# #           'shapes': ['funnel'],
+# #
+# #           'pos_weight': [1],
+# #
+# #           'kernel_initializer': ['uniform'],
+# #           'optimizer': [Adam, Nadam, RMSprop],
+# #           'losses': [binary_crossentropy],
+# #           'activation': [relu, elu, LeakyReLU],
+# #           'last_activation': [sigmoid],
+# #           }
+
+
+# Mei_NN_16,  new test data
+# try cloglog function in the last layer, compare the results with Mei_NN_12
+params = {'lr': (-6, -1),
+          'dropout': (0, 0.7),
 
           'batch_size': (10, 2000),
           'epochs': [100],
 
           'layer_size': (10, 500),
-          'other_hidden_layers': [2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+          'other_hidden_layers': [0],
           'shapes': ['funnel'],
 
           'pos_weight': [1],
@@ -259,9 +384,7 @@ params = {'lr': (-6, -1),                    # log scale for lr
           'optimizer': [Adam, Nadam, RMSprop],
           'losses': [binary_crossentropy],
           'activation': [relu, elu, LeakyReLU],
-          'last_activation': [sigmoid],
+          'last_activation': [cloglog],
           }
 
-n_iter = 100
-
-
+n_iter = 500

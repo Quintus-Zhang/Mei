@@ -93,23 +93,24 @@ class Scan(object):
         f_score = f1_score(y, y_pred)
         g_mean = geometric_mean_score(y, y_pred)
 
-        metrics = {'loss': loss,
+        metrics = {'Loss': loss,
                    'PR_AUC': pr_auc,
                    'ROC_AUC': roc_auc,
                    'F_score': f_score,
                    'G_mean': g_mean,
                    'Expeted_#_D60': exp_pos,
                    'Actual_#_D60': np.sum(y),
-                   'Diff_D60': np.sum(y) / exp_pos,
+                   'Diff_D60': abs(np.sum(y) - exp_pos),
+                   'Ratio_D60': np.sum(y) / exp_pos,
                    }
         return metrics
 
     def _write_results_header(self):
         header = ['Index',
                   'Loss_train', 'PR_AUC_train', 'ROC_AUC_train', 'F_score_train', 'G_mean_train', 'Expeted_#_D60_train',
-                  'Actual_#_D60_train', 'Diff_D60_train',
+                  'Actual_#_D60_train', 'Diff_D60_train', 'Ratio_D60_train',
                   'Loss_val', 'PR_AUC_val', 'ROC_AUC_val', 'F_score_val', 'G_mean_val', 'Expeted_#_D60_val',
-                  'Actual_#_D60_val', 'Diff_D60_val',
+                  'Actual_#_D60_val', 'Diff_D60_val', 'Ratio_D60_val',
                   'Stopped_Epochs'] + self.params_name
         #                   'lr', 'dropout', 'other_hidden_layers', 'layer_size', 'batch_size', 'epochs', 'shapes',
         #                   'kernel_initializer', 'optimizer', 'losses', 'activation', 'last_activation'

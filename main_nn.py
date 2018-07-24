@@ -14,7 +14,7 @@ import pickle as pk
 import multiprocessing
 
 # local items
-from utils import data_prep, DataPrep, DataPrepWrapper
+from utils import data_prep, DataPrep, DataPrepWrapper, data_prep_new
 from scan import Scan
 from params import ParamsGridSearch, ParamsRandomGridSearch, ParamsRandomSearch
 from config import *
@@ -38,12 +38,17 @@ if __name__ == "__main__":
     # is_data = DataPrep(df)
     # X_train, X_val, X_test, y_train, y_val, y_test = is_data.split_and_standardize()
 
-    # # 3. DataPrepWrapper
-    df = pd.read_csv(data_fp)
-    os_df = pd.read_csv(os_data_fp)
+    # 3. DataPrepWrapper
+    df = pd.read_csv(data_fp, low_memory=False)
+    os_df = pd.read_csv(os_data_fp, low_memory=False)
     is_data = DataPrep(df)
     data = DataPrepWrapper(is_data, os_df)
     X_train, X_val, X_test, y_train, y_val, y_test = data.split_and_standardize()
+
+    # # 4. new data
+    # df = pd.read_csv(data_fp, low_memory=False)
+    # os_df = pd.read_csv(os_data_fp, low_memory=False)
+    # X_train, X_val, X_test, y_train, y_val, y_test = data_prep_new(df, os_df)
 
     # dump the test dataset as pickle file to Temp dir for later use
     if not glob.glob(f'{temp_dir}\\*.pkl'):

@@ -9,10 +9,68 @@ from sklearn.preprocessing import StandardScaler
 
 from keras.callbacks import Callback
 from keras.layers import Dense, Dropout
+from keras import backend as K
+
+
+def data_prep_new(raw_tr_df, raw_te_df):
+    CAT_VARS = ['source', 'seasoning2', 'jstate', 'prop_type', 'num_unit', 'ltv_chn_bkr', 'ltv_purp_co', 'seasoning1',
+                'ltv_fhb_y', 'noborcat', 'ltv_occ_sec', 'ltv_bo_one', 'invcat', 'orig_chn', 'loan_purp_cat',
+                'seasoning31', 'qtr', 'ltv_unit_mul', 'loan_purp', 'channelcat', 'prop_type_cat', 'ltv_occ_inv',
+                'nounitscat', 'occ_stat']
+
+    tr_cols = [col.lower() for col in raw_tr_df.columns]
+    te_cols = [col.lower() for col in raw_te_df.columns]
+
+    rename_dict_tr = dict(zip(list(raw_tr_df.columns), tr_cols))
+    rename_dict_te = dict(zip(list(raw_te_df.columns), te_cols))
+
+    raw_tr_df.rename(rename_dict_tr, axis='columns', inplace=True)
+    raw_te_df.rename(rename_dict_te, axis='columns', inplace=True)
+
+    com_cols = list(set(te_cols).intersection(set(tr_cols)))
+
+    tr_df = raw_tr_df[com_cols].copy()
+    te_df = raw_te_df[com_cols].copy()
+
+    tr_df.drop(['orig_dte', 'msa', 'cupb_act', 'period', 'prop_state', 'loan_id', 'status_prev', 'fhb_flag'],
+               axis=1, inplace=True)
+    te_df.drop(['orig_dte', 'msa', 'cupb_act', 'period', 'prop_state', 'loan_id', 'status_prev', 'fhb_flag'],
+               axis=1, inplace=True)
+
+    tr_df.dropna(how='any', inplace=True)
+    te_df.dropna(how='any', inplace=True)
+
+    tr_df.loc[:, 'status'] = tr_df['status'].apply(lambda x: int(x == 'D60-D90'))
+    te_df.loc[:, 'status'] = te_df['status'].apply(lambda x: int(x == 'D60-D90'))
+
+    tr_X = tr_df.drop(['status'], axis=1).copy()
+    te_X = te_df.drop(['status'], axis=1).copy()
+    tr_y = tr_df['status'].copy()
+    te_y = te_df['status'].copy()
+
+    # get numerical features before one hot encoding
+    num_feats = list(set(tr_X.columns) - set(CAT_VARS))
+
+    # one hot encoding
+    tr_X = pd.get_dummies(tr_X, columns=CAT_VARS)
+    te_X = pd.get_dummies(te_X, columns=CAT_VARS)
+
+    # split
+    X_train, X_val, y_train, y_val = train_test_split(tr_X, tr_y, test_size=0.3, random_state=0)
+    X_test, y_test = te_X, te_y
+
+    # scale
+    scaler = StandardScaler().fit(X_train.loc[:, num_feats])
+    pd.set_option('mode.chained_assignment', None)  # TODO: ugly here
+    X_train.loc[:, num_feats] = scaler.transform(X_train.loc[:, num_feats])
+    X_val.loc[:, num_feats] = scaler.transform(X_val.loc[:, num_feats])
+    X_test.loc[:, num_feats] = scaler.transform(X_test.loc[:, num_feats])
+
+    return X_train.values, X_val.values, X_test.values, y_train.values, y_val.values, y_test.values
 
 
 class DataPrep(object):
-    CATE_VAR = ['orig_chn', 'loan_purp', 'prop_type', 'occ_stat', 'judicial_st', 'fhb_flag']
+    CATE_VAR = ['orig_chn', 'loan_purp', 'prop_type', 'occ_stat', 'judicial_st', 'fhb_flag', ]
     JUD_ST = ('CT', 'DE', 'FL', 'IL', 'IN', 'KS', 'KY', 'LA', 'ME', 'MA',
               'NE', 'NJ', 'NM', 'NY', 'ND', 'OH', 'OK', 'PA', 'SC', 'SD',
               'VT', 'WI')
@@ -92,6 +150,7 @@ class DataPrepWrapper(object):
     def __init__(self, is_data, os_df):
         self.is_data = is_data
         self.os_df = os_df
+        # print(len(os_df))
 
         self.preproced_os_df, self.pos_prob = self._preproc_os_data()
         self.os_data = DataPrep(self.preproced_os_df)
@@ -108,12 +167,15 @@ class DataPrepWrapper(object):
 
     def _homo_ios_data(self):
         # homo the columns
-        print(list(set(self.is_data.X.columns) - set(self.os_data.X.columns)))
+        # print(list(set(self.is_data.X.columns) - set(self.os_data.X.columns)))
         for col in list(set(self.is_data.X.columns) - set(self.os_data.X.columns)):
             self.os_data.X[col] = 0
             self.os_data.X[col] = self.os_data.X[col].astype('uint8')  # TODO: check data type
         # order the columns
         self.os_data.X = self.os_data.X[self.is_data.X.columns]
+
+        # select the index for pos_prob
+        self.pos_prob = self.pos_prob[self.os_data.X.index]
 
     def split_and_standardize(self):
         X_train, X_val, y_train, y_val = self.is_data.split(method='train_val_split')
@@ -264,3 +326,18 @@ class ModelCheckpointRtnBest(Callback):
 # expected_positives_loss
 def expected_positives_loss(y_true, y_pred):
     return abs(np.sum(y_true) - np.sum(y_pred))
+
+
+def l1(y_true, y_pred):
+    return np.sum(abs(y_true - y_pred))
+
+
+def l2(y_true, y_pred):
+    return np.sum((y_true - y_pred)**2)
+
+
+def cloglog(y):
+    return 1-K.exp(-K.exp(y))
+
+
+
