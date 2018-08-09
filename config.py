@@ -1,11 +1,18 @@
 import os
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# xgboost
+import xgboost as xgb
+
 # Keras items
 from keras.models import Sequential
 from keras.layers import Dropout, Dense, LeakyReLU
-from keras.optimizers import Adam, Nadam, RMSprop
+from keras.optimizers import Adam, Nadam
 from keras.activations import relu, elu, sigmoid
 from keras.losses import binary_crossentropy, logcosh
 from keras.callbacks import EarlyStopping
+from keras.initializers import he_normal, he_uniform, random_normal, random_uniform
 
 # tensorflow items
 from keras import backend as K
@@ -13,7 +20,7 @@ import tensorflow as tf
 import tensorflow as tf
 
 # local items
-from utils import ModelCheckpointRtnBest, expected_positives_loss, l1, l2, cloglog
+from utils import ModelCheckpointRtnBest
 from layers import add_other_hidden_layers
 
 # set up paths of directories and files
@@ -24,22 +31,21 @@ data_dir = os.path.join(base_dir, 'Data')
 data_fp = os.path.join(data_dir, 'Gse_panel_current_sample_raw.csv')
 os_data_fp = os.path.join(data_dir, 'Gse_2016_ltvgt80_v50.csv')
 
+X_cols=['orig_rt', 'orig_upb', 'oltv', 'num_bo', 'dti', 'num_unit', 'fico',
+       'oyr', 'oqtr', 'ind_ede', 'pmms_o', 'avg_upb', 'OUPB_Rel',
+       'loan_age_qtr', 'year', 'qtr', 'PMMS', 'HPI_O', 'HPI', 'ur',
+       'CUPB_calc', 'Orig_value', 'CLTV', 'orig_chn_B', 'orig_chn_C',
+       'orig_chn_R', 'orig_chn_T', 'loan_purp_C', 'loan_purp_N', 'loan_purp_P',
+       'loan_purp_R', 'loan_purp_U', 'prop_type_CO', 'prop_type_CP',
+       'prop_type_LH', 'prop_type_MH', 'prop_type_PU', 'prop_type_SF',
+       'occ_stat_I', 'occ_stat_O', 'occ_stat_P', 'occ_stat_S', 'judicial_st_N',
+       'judicial_st_Y', 'fhb_flag_N', 'fhb_flag_Y']
+
 
 #########################################
 #          Set up your model            #
 #########################################
 def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
-    """
-
-    :param X_train:
-    :param y_train:
-    :param X_val:
-    :param y_val:
-    :param params:
-    :param params_idx:
-    :param cp_dir: output directory of the checkpoints(weights)
-    :return:
-    """
     model = Sequential()
     if type(params['activation']) is not type:
         model.add(Dense(params['layer_size'],
@@ -60,12 +66,12 @@ def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
                     kernel_initializer=params['kernel_initializer']))
 
     model.compile(loss=params['losses'],
-                  optimizer=params['optimizer']())
+                  optimizer=params['optimizer'](lr=params['lr']))
 
     # set up callbacks
     cp_fp = f'{cp_dir}\\{params_idx}' + '_best_model_{epoch:02d}_{val_loss:.5f}.hdf5'
     check_pointer = ModelCheckpointRtnBest(filepath=cp_fp, monitor='val_loss', mode='min', verbose=0)
-    early_stopper = EarlyStopping(monitor='val_loss', min_delta=0.00001, patience=5, verbose=0, mode='min')
+    early_stopper = EarlyStopping(monitor='val_loss', min_delta=1e-6, patience=5, verbose=0, mode='min')
     cb_list = [check_pointer, early_stopper]
 
     model.fit(X_train, y_train,
@@ -303,7 +309,7 @@ def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
 #           'last_activation': [sigmoid],
 #           }
 #
-# # Mei_NN_12,  new test data
+# # Mei_NN_12,  new test data, one hidden layer (benchmark)
 # params = {'lr': (-6, -1),
 #           'dropout': (0, 0.7),
 #
@@ -366,8 +372,122 @@ def neural_nets(X_train, y_train, X_val, y_val, params, params_idx, cp_dir):
 # #           }
 
 
-# Mei_NN_16,  new test data
-# try cloglog function in the last layer, compare the results with Mei_NN_12
+# # Mei_NN_16,  new test data
+# # try cloglog function in the last layer, compare the results with Mei_NN_12
+# params = {'lr': (-6, -1),
+#           'dropout': (0, 0.7),
+#
+#           'batch_size': (10, 2000),
+#           'epochs': [100],
+#
+#           'layer_size': (10, 500),
+#           'other_hidden_layers': [0],
+#           'shapes': ['funnel'],
+#
+#           'pos_weight': [1],
+#
+#           'kernel_initializer': ['uniform'],
+#           'optimizer': [Adam, Nadam, RMSprop],
+#           'losses': [binary_crossentropy],
+#           'activation': [relu, elu, LeakyReLU],
+#           'last_activation': [cloglog],
+#           }
+
+# # Mei_NN_19 and 20,  gse test data
+# # try early stopping from 1e-5 to 1e-6
+# # try other initializers
+# # try higher lb of layer_size
+# # try 1 hidden layer and 2 hidden layers
+# params = {'lr': (-6, -1),
+#           'dropout': (0, 0.7),
+#
+#           'batch_size': (100, 2000),
+#           'epochs': [100],
+#
+#           'layer_size': (100, 300),
+#           'other_hidden_layers': [0, 1],
+#           'shapes': ['funnel'],
+#
+#           'pos_weight': [1],
+#
+#           'kernel_initializer': ['normal', 'uniform', 'he_normal', 'he_uniform', 'glorot_uniform'],
+#           'optimizer': [Adam, Nadam, RMSprop],
+#           'losses': [binary_crossentropy],
+#           'activation': [relu, elu, LeakyReLU],
+#           'last_activation': [sigmoid],
+#           }
+#
+
+# # Mei 21
+# # large weight
+# # 86084
+# params = {'lr': (-6, -1),
+#           'dropout': (0, 0.7),
+#
+#           'batch_size': (100, 2000),
+#           'epochs': [100],
+#
+#           'layer_size': (100, 300),
+#           'other_hidden_layers': [0, 1],
+#           'shapes': ['funnel'],
+#
+#           'pos_weight': [500],
+#
+#           'kernel_initializer': ['normal', 'uniform', 'he_normal', 'he_uniform', 'glorot_uniform'],
+#           'optimizer': [Adam, Nadam, RMSprop],
+#           'losses': [binary_crossentropy],
+#           'activation': [relu, elu, LeakyReLU],
+#           'last_activation': [sigmoid],
+#           }
+
+#
+# # Mei 22
+# # small weight
+# # 28329 secs
+# params = {'lr': (-6, -1),
+#           'dropout': (0, 0.7),
+#
+#           'batch_size': (100, 2000),
+#           'epochs': [100],
+#
+#           'layer_size': (100, 300),
+#           'other_hidden_layers': [0, 1],
+#           'shapes': ['funnel'],
+#
+#           'pos_weight': [2, 5, 10],
+#
+#           'kernel_initializer': ['normal', 'uniform', 'he_normal', 'he_uniform', 'glorot_uniform'],
+#           'optimizer': [Adam, Nadam, RMSprop],
+#           'losses': [binary_crossentropy],
+#           'activation': [relu, elu, LeakyReLU],
+#           'last_activation': [sigmoid],
+#           }
+
+
+# # Mei 23, 24
+# # smaller weight
+# # 43680 secs
+# params = {'lr': (-6, -1),
+#           'dropout': (0, 0.7),
+#
+#           'batch_size': (100, 2000),
+#           'epochs': [100],
+#
+#           'layer_size': (100, 300),
+#           'other_hidden_layers': [0, 1],
+#           'shapes': ['funnel'],
+#
+#           'pos_weight': (1, 3),
+#
+#           'kernel_initializer': ['normal', 'uniform', 'he_normal', 'he_uniform', 'glorot_uniform'],
+#           'optimizer': [Adam, Nadam],
+#           'losses': [binary_crossentropy],
+#           'activation': [elu, LeakyReLU],
+#           'last_activation': [sigmoid],
+#           }
+
+# Mei_NN_25,  new test data, one hidden layer (benchmark)
+# 71950 secs
 params = {'lr': (-6, -1),
           'dropout': (0, 0.7),
 
@@ -381,10 +501,21 @@ params = {'lr': (-6, -1),
           'pos_weight': [1],
 
           'kernel_initializer': ['uniform'],
-          'optimizer': [Adam, Nadam, RMSprop],
+          'optimizer': [Adam, Nadam],
           'losses': [binary_crossentropy],
           'activation': [relu, elu, LeakyReLU],
-          'last_activation': [cloglog],
+          'last_activation': [sigmoid],
           }
 
-n_iter = 500
+n_iter = 100
+
+xgb_params = {
+    'eta': (-3, -1),
+    'max_depth': (3, 10),
+    'min_child_weight': (3, 10),
+    'subsample': (0, 1),
+    'colsample_bytree': (0, 1),
+    'eval_metric': ['logloss'],
+    'objective': ['binary:logistic'],
+    'silent': [1],
+}

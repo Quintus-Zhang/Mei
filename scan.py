@@ -6,7 +6,7 @@ import os
 import re
 
 # sklearn items
-from sklearn.metrics import roc_auc_score, roc_curve, auc, precision_recall_curve, average_precision_score, f1_score
+from sklearn.metrics import roc_curve, auc, average_precision_score, f1_score
 
 #
 from imblearn.metrics import geometric_mean_score
@@ -42,6 +42,9 @@ class Scan(object):
         self.mp_handler()
 
     def _run_search(self):
+        """
+            For-loop to iterate over different combs of parameters
+        """
         with open(self.round_fp, 'a', newline='') as f:
             res_writer = csv.writer(f, dialect='excel', delimiter=',')
             for idx, params in enumerate(self.params_grid):
@@ -53,6 +56,11 @@ class Scan(object):
                 f.flush()
 
     def worker(self, args):
+        """
+            Train the model and predict on the validation set
+        :return: a list, containing the metrics for the training set and validation set, and the corresponding combo of
+        parameter
+        """
         idx, params = args
         trained_model, stopped_epoch = self.model(self.X_train, self.y_train,
                                                   self.X_val, self.y_val, params, idx, self.round_dir)
@@ -65,17 +73,34 @@ class Scan(object):
             + self._collect_results(params)
 
     def mp_handler(self):
+        """
+            Multiprocess version to iterate over different combs of parameters
+        """
         cores = mp.cpu_count()
         with mp.Pool(cores) as p:
             with open(self.round_fp, 'a', newline='') as f:
                 res_writer = csv.writer(f, dialect='excel', delimiter=',')
-                for result in p.imap(self.worker, enumerate(self.params_grid)):      # a queue defined by pool object
+                for result in p.imap(self.worker, enumerate(self.params_grid)):
                     print(f'Saving results to {self.round_fp}')
                     res_writer.writerow(result)
                     f.flush()
 
     @staticmethod
-    def model_predict(model, X, y):
+    def model_predict(model, X, y, just_d60=False):
+        """
+            perform the model prediction and calculate various metrics
+
+        :param model: trained model
+        :param X: a numpy array, data feed to the model
+        :param y: a numpy array, ground true label
+        :param just_d60: flag
+        :return: a dict
+        """
+        if just_d60:
+            prob_pos = model.predict(X, batch_size=X.shape[0], verbose=0)
+            exp_pos = np.sum(prob_pos)
+            return np.sum(y), exp_pos, prob_pos
+
         # evaluate
         loss = model.evaluate(X, y, batch_size=X.shape[0], verbose=0)
 
@@ -85,7 +110,7 @@ class Scan(object):
         y_pred = vfunc(prob_pos).ravel()
 
         # calculate performance metrics
-        precision, recall, _ = precision_recall_curve(y, prob_pos)
+        # precision, recall, _ = precision_recall_curve(y, prob_pos)
         fpr, tpr, _ = roc_curve(y, prob_pos)
         roc_auc = auc(fpr, tpr)
         pr_auc = average_precision_score(y, prob_pos)
@@ -106,24 +131,25 @@ class Scan(object):
         return metrics
 
     def _write_results_header(self):
+        """
+            Write the header of the output file
+        """
         header = ['Index',
                   'Loss_train', 'PR_AUC_train', 'ROC_AUC_train', 'F_score_train', 'G_mean_train', 'Expeted_#_D60_train',
                   'Actual_#_D60_train', 'Diff_D60_train', 'Ratio_D60_train',
                   'Loss_val', 'PR_AUC_val', 'ROC_AUC_val', 'F_score_val', 'G_mean_val', 'Expeted_#_D60_val',
                   'Actual_#_D60_val', 'Diff_D60_val', 'Ratio_D60_val',
                   'Stopped_Epochs'] + self.params_name
-        #                   'lr', 'dropout', 'other_hidden_layers', 'layer_size', 'batch_size', 'epochs', 'shapes',
-        #                   'kernel_initializer', 'optimizer', 'losses', 'activation', 'last_activation'
         with open(self.round_fp, 'w', newline='') as f:
             res_writer = csv.writer(f, dialect='excel', delimiter=',')
             res_writer.writerow(header)
 
-    @staticmethod  # TODO: check
+    @staticmethod
     def _collect_results(results):
         op = []
         for key in list(results.keys()):
             op.append(results[key])
-        return op  # ",".join(str(i) for i in op)
+        return op
 
     def _output_setup(self):
         rounds = glob.glob(f'{self.result_dir}\\{self.dataset_name}_*')
@@ -135,3 +161,6 @@ class Scan(object):
         self.round_dir = f'{self.result_dir}\\{self.dataset_name}_{round_no}'
         os.mkdir(self.round_dir)
         self.round_fp = f'{self.round_dir}\\{self.dataset_name}_{round_no}.csv'
+
+
+

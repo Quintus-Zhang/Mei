@@ -3,13 +3,16 @@ import numpy as np
 import pandas as pd
 import glob
 import warnings
+import itertools
+import time
+import collections
 
 # keras items
 from keras.models import load_model
 
 # local items
 from scan import Scan
-from config import results_dir, temp_dir, data_fp, os_data_fp
+from config import results_dir, temp_dir, data_fp, os_data_fp, data_dir, X_cols
 from utils import DataPrep, DataPrepWrapper
 
 # sklearn items
@@ -60,16 +63,16 @@ def select_best_model(round_no=None, based_on='Loss_val', index=None, best_k=1):
     round_fp = os.path.join(round_dir, f'Mei_NN_{round_no}.csv')
 
     if based_on is 'index':
-        return load_model(glob.glob(f'{round_dir}\\{index}_*')[0])
+        return load_model(glob.glob(f'{round_dir}\\{index}_*')[0]), index
 
     # read the 'Mei_NN_*.csv' file
     res = pd.read_csv(round_fp)
 
     # search for file name of the best model based on a specific metric
     if based_on in ['Loss_val', 'Diff_D60_val']:
-        params_idx = res.loc[:, based_on].sort_values().index[:best_k]
+        params_idx = res.loc[:, ['Index', based_on]].sort_values(by=based_on)['Index'][:best_k].values
     elif based_on in ['PR_AUC_val', 'ROC_AUC_val', 'F_score_val', 'G_mean_val']:
-        params_idx = res.loc[:, based_on].sort_values(ascending=False).index[:best_k]
+        params_idx = res.loc[:, ['Index', based_on]].sort_values(by=based_on)['Index'][:best_k].values
     else:
         warnings.warn(f'Cannot select the best model based on {based_on}')
 
@@ -110,11 +113,18 @@ def calc_metrics_radar(y_true, y_prob):
 
 if __name__ == "__main__":
     # get model
-    round_no = 14
+    round_no = 22
     target_metric = 'Loss_val'
     best_k = 5
+    index = None
+    stacking = True
 
-    models, idx = select_best_model(round_no=round_no, based_on=target_metric, index=None, best_k=best_k)
+    models, idx = select_best_model(round_no=round_no, based_on=target_metric, index=index, best_k=best_k)
+    print(idx)
+
+    if not isinstance(models, collections.Iterable):
+        models = [models]
+        idx = [idx]
 
     # collate to excel
     cols = ['Vintage', 'Model', 'Index', 'Loss', 'PR_AUC', 'ROC_AUC', 'F_score', 'G_mean',
@@ -133,49 +143,46 @@ if __name__ == "__main__":
         metrics_ra.update({'Vintage': v, 'Model': 'RaDaR', 'Index': None})
         cmp_df = cmp_df.append(metrics_ra, ignore_index=True)
 
-        # for each model, calculate the metrics
-        # prob = np.zeros_like(y_prob)
-        # for model, id in zip(models, idx):
-        #     prob += np.squeeze(model.predict(X_test, batch_size=X_test.shape[0], verbose=0))
-        #     # metrics_nn = Scan.model_predict(model, X_test, y_test)
-        #     # metrics_nn.update({'Vintage': v, 'Model': f'Mei_NN_{round_no}', 'Index': id})
-        #     # cmp_df = cmp_df.append(metrics_nn, ignore_index=True)
-        #
-        # prob /= best_k
-        # vfunc = np.vectorize(lambda x: 1 if x > 0.05 else 0)
-        # y_pred = vfunc(prob).ravel()
-        #
-        # # calculate performance metrics
-        # precision, recall, _ = precision_recall_curve(y_test, prob)
-        # fpr, tpr, _ = roc_curve(y_test, prob)
-        # roc_auc = auc(fpr, tpr)
-        # pr_auc = average_precision_score(y_test, prob)
-        # exp_pos = np.sum(prob)
-        # f_score = f1_score(y_test, y_pred)
-        # g_mean = geometric_mean_score(y_test, y_pred)
-        #
-        # metrics_nn = {'Loss': None,
-        #            'PR_AUC': pr_auc,
-        #            'ROC_AUC': roc_auc,
-        #            'F_score': f_score,
-        #            'G_mean': g_mean,
-        #            'Expeted_#_D60': exp_pos,
-        #            'Actual_#_D60': np.sum(y_test),
-        #            'Diff_D60': abs(np.sum(y_test) - exp_pos),
-        #            'Ratio_D60': np.sum(y_test) / exp_pos,
-        #            }
-        # metrics_nn.update({'Vintage': v, 'Model': f'Mei_NN_{round_no}', 'Index': None})
-        # cmp_df = cmp_df.append(metrics_nn, ignore_index=True)
+        if stacking:
+            # for each model, calculate the metrics
+            prob = np.zeros_like(y_prob)
+            for model, id in zip(models, idx):
+                prob += np.squeeze(model.predict(X_test, batch_size=X_test.shape[0], verbose=0))
 
-        # for model, id in zip(models, idx):
-        #     metrics_nn = Scan.model_predict(model, X_test, y_test)
-        #     metrics_nn.update({'Vintage': v, 'Model': f'Mei_NN_{round_no}', 'Index': id})
-        #     cmp_df = cmp_df.append(metrics_nn, ignore_index=True)
+            prob /= best_k
+            vfunc = np.vectorize(lambda x: 1 if x > 0.05 else 0)
+            y_pred = vfunc(prob).ravel()
 
-    cmp_fp = os.path.join(results_dir, f'cmp_round{round_no}_{target_metric}_best{best_k}_loss.xlsx')
+            # calculate performance metrics
+            precision, recall, _ = precision_recall_curve(y_test, prob)
+            fpr, tpr, _ = roc_curve(y_test, prob)
+            roc_auc = auc(fpr, tpr)
+            pr_auc = average_precision_score(y_test, prob)
+            exp_pos = np.sum(prob)
+            f_score = f1_score(y_test, y_pred)
+            g_mean = geometric_mean_score(y_test, y_pred)
+
+            metrics_nn = {'Loss': None,
+                       'PR_AUC': pr_auc,
+                       'ROC_AUC': roc_auc,
+                       'F_score': f_score,
+                       'G_mean': g_mean,
+                       'Expeted_#_D60': exp_pos,
+                       'Actual_#_D60': np.sum(y_test),
+                       'Diff_D60': abs(np.sum(y_test) - exp_pos),
+                       'Ratio_D60': np.sum(y_test) / exp_pos,
+                       }
+            metrics_nn.update({'Vintage': v, 'Model': f'Mei_NN_{round_no}', 'Index': None})
+            cmp_df = cmp_df.append(metrics_nn, ignore_index=True)
+        else:
+            for model, id in zip(models, idx):
+                metrics_nn = Scan.model_predict(model, X_test, y_test)
+                metrics_nn.update({'Vintage': v, 'Model': f'Mei_NN_{round_no}', 'Index': id})
+                cmp_df = cmp_df.append(metrics_nn, ignore_index=True)
+
+    if stacking:
+        cmp_fp = os.path.join(results_dir, f'cmp_round{round_no}_{target_metric}_best{best_k}_ave.xlsx')
+    else:
+        cmp_fp = os.path.join(results_dir, f'cmp_round{round_no}_{target_metric}_index{index}.xlsx')
+
     cmp_df.to_excel(cmp_fp)
-
-
-# round_3
-# not good, hold-out validation is not enough
-
